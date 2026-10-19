@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notfallkarte zum Laminieren</title>
+  <meta name="description" content="Notfallkarte für lange Läufe ausfüllen, drucken und laminieren, im Scheckkartenformat. Die Angaben bleiben im Browser.">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23b42318'/%3E%3Cpath d='M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z' fill='white'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      /* Oberfläche */
+      --ui-bg: #ffffff;
+      --ui-ink: #18181b;
+      --ui-text: #3f3f46;
+      --ui-muted: #71717a;
+      --ui-faint: #a1a1aa;
+      --ui-line: #e4e4e7;
+      --ui-field: #d4d4d8;
+      --ui-hover: #f4f4f5;
+      --accent: #b42318;
+      --accent-ink: #912018;
+      --accent-wash: #fef3f2;
+      --canvas: #1c1c1f;
+      --canvas-line: #2e2e33;
+      --canvas-text: #a1a1aa;
+      --bar-h: 56px;
+
+      /* Karte */
+      --red: #7f1d1d;
+      --red-soft: #fde8e8;
+      --ink: #1c1917;
+      --muted: #57534e;
+      --line: #e7e5e4;
+      --compact-w: 85.6mm;
+      --compact-h: 54mm;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--ui-bg);
+      color: var(--ui-ink);
+      font-family: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, p { margin: 0; }
+
+    svg.i { width: 16px; height: 16px; flex: 0 0 auto; }
+
+    /* ── App-Gerüst ── */
+
+    .app {
+      display: grid;
+      grid-template-rows: var(--bar-h) minmax(0, 1fr);
+      grid-template-columns: minmax(380px, 460px) minmax(0, 1fr);
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    .bar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 20px;
+      border-bottom: 1px solid var(--ui-line);
+      background: var(--ui-bg);
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: auto;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .brand h1 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
+    .brand p { font-size: 13px; color: var(--ui-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .btn {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--ui-field);
+      border-radius: 8px;
+      background: white;
+      color: var(--ui-ink);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 550;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: var(--ui-hover); }
+
+    .btn.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn.primary:hover { background: var(--accent-ink); }
+
+    .btn.icon { width: 34px; padding: 0; justify-content: center; }
+
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* Menü */
+    .menu { position: relative; }
+    .menu > summary { list-style: none; }
+    .menu > summary::-webkit-details-marker { display: none; }
+
+    .menu-list {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      min-width: 220px;
+      padding: 4px;
+      background: white;
+      border: 1px solid var(--ui-line);
+      border-radius: 10px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      display: grid;
+    }
+
+    .menu-list button, .menu-list label {
+      appearance: none;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--ui-ink);
+      font: inherit;
+      font-size: 13.5px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .menu-list button:hover, .menu-list label:hover { background: var(--ui-hover); }
+    .menu-list hr { border: 0; border-top: 1px solid var(--ui-line); margin: 4px 0; }
+    .menu-list .danger { color: var(--accent); }
+    .menu-list svg { color: var(--ui-muted); }
+    .menu-list .danger svg { color: var(--accent); }
+
+    /* ── Formular ── */
+
+    .editor {
+      overflow-y: auto;
+      border-right: 1px solid var(--ui-line);
+      padding: 4px 24px 40px;
+      scrollbar-width: thin;
+    }
+
+    .intro {
+      padding: 20px 0 4px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--ui-text);
+    }
+
+    .intro .legend-print {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--ui-hover);
+      font-size: 12.5px;
+      color: var(--ui-muted);
+    }
+
+    .sec {
+      padding: 24px 0 4px;
+      border-bottom: 1px solid var(--ui-line);
+    }
+
+    .sec:last-of-type { border-bottom: 0; }
+
+    .sec h2 {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: -0.005em;
+      margin-bottom: 2px;
+    }
+
+    .sec h2 span {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ui-faint);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sec > p.sub {
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--ui-muted);
+      margin-bottom: 4px;
+    }
+
+    .field { margin: 14px 0 0; min-width: 0; }
+
+    .field-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 22px;
+      margin-bottom: 5px;
+    }
+
+    .field-head label {
+      font-size: 13px;
+      font-weight: 550;
+      color: var(--ui-text);
+      margin-right: auto;
+    }
+
+
+    .pt {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 22px;
+      padding: 0 6px;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--ui-text);
+      font: inherit;
+      font-size: 11.5px;
+      font-weight: 550;
+      cursor: pointer;
+    }
+
+    .pt:hover { background: var(--ui-hover); }
+    .pt svg { width: 14px; height: 14px; }
+    .pt .off { display: none; }
+    .pt[aria-pressed="false"] { color: var(--ui-faint); }
+    .pt[aria-pressed="false"] .on { display: none; }
+    .pt[aria-pressed="false"] .off { display: inline; }
+
+    .pt .off-text { display: none; }
+    .pt[aria-pressed="false"] .off-text { display: inline; }
+
+    .field.is-off label { color: var(--ui-muted); }
+
+    .field.is-off :is(input:not([type="checkbox"]):not([type="file"]), select, textarea) {
+      background: var(--ui-hover);
+      color: var(--ui-muted);
+      border-style: dashed;
+      text-decoration: line-through;
+      text-decoration-color: var(--ui-faint);
+    }
+
+    .hint {
+      margin-top: 5px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--ui-muted);
+    }
+
+    input:not([type="checkbox"]):not([type="file"]), select, textarea {
+      display: block;
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--ui-field);
+      background: white;
+      color: var(--ui-ink);
+      border-radius: 8px;
+      padding: 0 11px;
+      font: inherit;
+      font-size: 14px;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+
+    textarea { height: auto; min-height: 64px; padding: 9px 11px; line-height: 1.4; resize: vertical; }
+
+    input::placeholder, textarea::placeholder { color: var(--ui-faint); }
+
+    input:hover, select:hover, textarea:hover { border-color: #a1a1aa; }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.12);
+    }
+
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 12px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    .chip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 11px;
+      border: 1px solid var(--ui-field);
+      border-radius: 999px;
+      font-size: 13px;
+      color: var(--ui-text);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .chip:hover { background: var(--ui-hover); }
+    .chip input { position: absolute; opacity: 0; pointer-events: none; }
+    .chip::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ui-field);
+    }
+
+    .chip:has(input:checked) {
+      border-color: var(--accent);
+      background: var(--accent-wash);
+      color: var(--accent-ink);
+      font-weight: 550;
+    }
+
+    .chip:has(input:checked)::before { background: var(--accent); }
+    .chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .steps {
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: step;
+      display: grid;
+      gap: 10px;
+    }
+
+    .steps li {
+      counter-increment: step;
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--ui-text);
+    }
+
+    .steps li::before {
+      content: counter(step);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ui-faint);
+      font-variant-numeric: tabular-nums;
+      padding-top: 1px;
+    }
+
+    .fine {
+      margin-top: 12px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--ui-muted);
+    }
+
+    /* ── Arbeitsfläche ── */
+
+    .stage {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      background: var(--canvas);
+      min-width: 0;
+    }
+
+    .desk {
+      overflow: auto;
+      scrollbar-gutter: stable;
+      padding: 32px;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-size: 18px 18px;
+      scrollbar-color: #3f3f46 transparent;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      min-height: 44px;
+      padding: 8px 20px;
+      border-top: 1px solid var(--canvas-line);
+      color: var(--canvas-text);
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+
+    .status .msg { display: flex; align-items: center; gap: 8px; margin-right: auto; color: #e4e4e7; }
+    .status .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex: 0 0 auto; }
+    .status.warn .dot { background: #f59e0b; }
+    .status .example-tag {
+      display: none;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #3f2a12;
+      color: #fbbf24;
+      font-weight: 600;
+    }
+    body.is-example .status .example-tag { display: inline-block; }
+
+    /* ── Druckbogen ── */
+
+    .sheet-page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: white;
+      color: var(--ink);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 20px 48px rgba(0, 0, 0, 0.45);
+      padding: 12mm;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 10pt;
+    }
+
+
+    .layout-compact {
+      display: grid;
+      grid-template-columns: var(--compact-w) var(--compact-w);
+      column-gap: 5mm;
+      row-gap: 3mm;
+      justify-content: center;
+      align-content: start;
+      width: 100%;
+    }
+
+    .layout-compact > .finder,
+    .layout-compact > .help,
+    .layout-compact > .scale { grid-column: 1 / -1; }
+
+
+    .tag {
+      margin: 0;
+      font-size: 8pt;
+      line-height: 1.25;
+      color: #44403c;
+      text-align: right;
+      padding-top: 1mm;
+    }
+
+    .help, .scale-note {
+      margin: 0;
+      font-size: 8pt;
+      line-height: 1.3;
+      color: #292524;
+    }
+
+    .scale { display: flex; align-items: center; gap: 4mm; }
+
+    .scale-bar {
+      width: 100mm;
+      height: 0.8mm;
+      background: #1c1917;
+      flex: 0 0 auto;
+    }
+
+    /* ── Karte ── */
+
+    .card {
+      position: relative;
+      background: white;
+      color: var(--ink);
+      border: 0.35mm solid #1c1917;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card.mini { width: var(--compact-w); height: var(--compact-h); }
+
+    .card.overflowing { outline: 0.8mm solid #f59e0b; }
+
+    body.is-example .card::after {
+      content: "MUSTER";
+      position: absolute;
+      inset: 18% 0;
+      display: grid;
+      place-items: center;
+      font-size: 22pt;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: rgba(127, 29, 29, 0.14);
+      transform: rotate(-16deg);
+      pointer-events: none;
+    }
+
+    .front-head, .mini-head {
+      background: var(--red);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 3mm;
+      padding: 2.4mm 3.2mm 2.2mm;
+    }
+
+    .wordmark {
+      font-size: 16pt;
+      font-weight: 800;
+      letter-spacing: 0.11em;
+      line-height: 0.95;
+    }
+
+    .submark {
+      display: block;
+      margin-top: 1mm;
+      font-size: 7.4pt;
+      font-weight: 650;
+      letter-spacing: 0.06em;
+    }
+
+    .call {
+      border: 0.55mm solid white;
+      min-width: 18mm;
+      text-align: center;
+      padding: 0.8mm 1.6mm 0.7mm;
+      line-height: 1;
+    }
+
+    .call b { display: block; font-size: 18pt; letter-spacing: 0.04em; }
+
+    .call span {
+      display: block;
+      margin-top: 0.4mm;
+      font-size: 6pt;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+    }
+
+    .id { padding: 2.4mm 3.2mm 1.8mm; }
+
+    .kicker {
+      font-size: 7pt;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--red);
+    }
+
+    .name {
+      font-size: 15pt;
+      font-weight: 750;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+
+    .meta {
+      margin-top: 0.6mm;
+      font-size: 8.5pt;
+      color: #44403c;
+    }
+
+    .strip {
+      margin: 0 3.2mm;
+      padding: 1.3mm 2mm;
+      border-radius: 1.2mm;
+      background: #fff7ed;
+      border-left: 1.3mm solid #c2410c;
+    }
+
+    .strip[data-tone="alert"] { background: var(--red-soft); border-left-color: var(--red); }
+    .strip[data-tone="none"] { background: #e7f5ec; border-left-color: #166534; }
+
+    .strip .kicker { color: inherit; }
+    .strip[data-tone="alert"] .kicker { color: var(--red); }
+    .strip[data-tone="none"] .kicker { color: #14532d; }
+
+    .strip p {
+      margin-top: 0.3mm;
+      font-size: 9pt;
+      font-weight: 700;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .contacts {
+      flex: 1 1 auto;
+      min-height: 0;
+      margin: 2mm 3.2mm 2.4mm;
+      padding: 2mm 2.4mm;
+      background: #f6f3f0;
+      border-radius: 1.4mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      gap: 1.2mm;
+      overflow: hidden;
+    }
+
+    .contacts > div + div:not([hidden]) { padding-top: 1.2mm; border-top: 0.25mm solid #e2ddd8; }
+    .contacts > .kicker + div { padding-top: 0 !important; border-top: 0 !important; }
+
+    .who { font-size: 8pt; color: #44403c; }
+    .who:empty { display: none; }
+
+    .phone {
+      font-size: 15pt;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+
+    .phone:empty:not(.is-empty) { display: none; }
+    .contacts .race .phone { font-size: 12pt; }
+
+    .front-foot {
+      margin-top: auto;
+      background: #1c1917;
+      color: white;
+      padding: 2mm 3.2mm 2.2mm;
+      font-size: 7.3pt;
+      line-height: 1.3;
+    }
+
+    .front-foot strong { font-weight: 750; }
+
+    .back-head {
+      background: var(--red);
+      color: white;
+      padding: 1.8mm 3.2mm;
+      display: flex;
+      justify-content: space-between;
+      gap: 3mm;
+      align-items: baseline;
+    }
+
+    .back-head .word { font-size: 11pt; font-weight: 800; letter-spacing: 0.12em; }
+
+    .back-head .who-small {
+      font-size: 8pt;
+      font-weight: 650;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .back-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      padding: 2mm 3.2mm 1mm;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4mm;
+      font-size: 8.4pt;
+    }
+
+    .pills { display: flex; flex-wrap: wrap; gap: 1mm; }
+    .pills.is-empty { display: none; }
+
+    .pill {
+      background: var(--red);
+      color: white;
+      font-size: 0.8em;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-radius: 1mm;
+      padding: 0.5mm 1.4mm;
+    }
+
+    .lines { display: flex; flex-direction: column; gap: 0.5mm; }
+    .lines p { margin: 0; line-height: 1.3; overflow-wrap: anywhere; }
+    .lines .pill { margin-right: 0.8mm; }
+
+    .back-body .kicker { font-size: 0.84em; margin-bottom: 0.2mm; }
+
+    .block .value {
+      font-size: 1em;
+      font-weight: 650;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .block.alert, .block.none, .block.empty { padding: 0.8mm 1.4mm; border-left: 1.2mm solid; }
+    .block.alert { background: var(--red-soft); border-left-color: var(--red); }
+    .block.none { background: #e7f5ec; border-left-color: #166534; }
+    .block.empty { background: #fff7ed; border-left-color: #c2410c; }
+
+    .value.is-empty::before {
+      content: attr(data-placeholder);
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .back-foot {
+      border-top: 0.3mm solid var(--line);
+      padding: 1.3mm 3.2mm 1.6mm;
+      font-size: 7pt;
+      line-height: 1.3;
+      color: #292524;
+    }
+
+    .back-foot p { margin: 0; overflow-wrap: anywhere; }
+    .back-foot p:empty { display: none; }
+
+    .finder {
+      height: 16mm;
+      background: var(--red);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 4mm;
+      border: 0.35mm solid #1c1917;
+    }
+
+    .finder strong { font-size: 13pt; letter-spacing: 0.08em; line-height: 1; }
+    .finder span { margin-top: 0.8mm; font-size: 8pt; letter-spacing: 0.04em; }
+
+    /* Scheckkarte */
+    .mini-head { padding: 1.2mm 1.8mm; }
+    .mini .wordmark { font-size: 9pt; letter-spacing: 0.08em; }
+    .mini .submark { font-size: 5.6pt; margin-top: 0.4mm; }
+    .mini .call { min-width: 12mm; padding: 0.4mm 1mm; }
+    .mini .call b { font-size: 11pt; }
+    .mini .call span { display: none; }
+    .mini .id { padding: 1mm 1.8mm 0.8mm; }
+    .mini .name { font-size: 9pt; }
+    .mini .meta { font-size: 6.2pt; margin-top: 0.2mm; }
+    .mini .who { font-size: 5.8pt; }
+    .mini .strip { margin: 0 1.8mm; padding: 0.6mm 1.2mm; border-left-width: 1mm; }
+    .mini .strip p { font-size: 6.4pt; margin: 0; }
+    .mini .contacts { margin: 0.8mm 1.8mm; padding: 0.5mm 1.2mm; gap: 0.3mm; }
+    .mini .contacts > div + div:not([hidden]) { padding-top: 0.3mm; }
+    .mini .phone, .mini .contacts .race .phone { font-size: 8.4pt; }
+    .mini .front-foot { font-size: 5.7pt; padding: 0.9mm 1.8mm; }
+    .mini .back-head { padding: 1mm 1.8mm; }
+    .mini .back-head .word { font-size: 7.5pt; }
+    .mini .back-head .who-small { font-size: 6pt; }
+    .mini .back-body { padding: 1mm 1.8mm 0.6mm; gap: 0.6mm; font-size: 6.2pt; }
+    .mini .block.alert, .mini .block.none, .mini .block.empty { padding: 0.3mm 1mm; border-left-width: 0.9mm; }
+    .mini .back-foot { font-size: 5.4pt; line-height: 1.25; padding: 0.6mm 1.8mm 0.8mm; }
+
+    .mini-slot { display: flex; flex-direction: column; gap: 1mm; }
+    .mini-slot .tag { text-align: left; padding: 0; }
+
+    .mini-finder {
+      width: calc(var(--compact-w) * 2 + 5mm);
+      height: 12mm;
+      justify-self: center;
+    }
+
+    .mini-finder strong { font-size: 10pt; }
+
+    [hidden] { display: none !important; }
+
+    /* Am Bildschirm nur der bedruckte Teil des Bogens */
+    @media screen { .sheet-page { min-height: 0; } }
+
+    /* ── Schmal ── */
+
+    @media screen and (max-width: 900px) {
+      .app { display: block; height: auto; }
+      .bar { position: sticky; top: 0; flex-wrap: wrap; height: auto; padding: 10px 16px; }
+      .brand p { display: none; }
+      .editor { border-right: 0; padding: 0 16px 32px; overflow: visible; }
+      .stage { min-height: 70vh; }
+      .desk { padding: 16px; }
+    }
+
+    @media screen and (max-width: 440px) {
+      .row2 { grid-template-columns: 1fr; }
+    }
+
+    /* ── Druck ── */
+
+    @media print {
+      html, body { background: white; }
+      .bar, .editor, .status { display: none !important; }
+      .app, .stage { display: block; height: auto; background: white; }
+      .desk { padding: 0; overflow: visible; background: none; }
+      .sheet-page {
+        zoom: 1 !important;
+        width: auto;
+        min-height: 0;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+      }
+      .card, .finder, .front-head, .mini-head, .back-head, .front-foot, .strip, .contacts, .block, .pill, .scale-bar {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+
+    @page { size: A4 portrait; margin: 12mm; }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-print" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-2.2 3.1M6.6 6.6C3.7 8.4 2 12 2 12s3.5 7 10 7c1.9 0 3.6-.6 5-1.4M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></symbol>
+    <symbol id="i-sample" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  </svg>
+
+  <div class="app">
+    <header class="bar">
+      <div class="brand">
+        <div class="brand-mark"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 0h4v5h5v4H9v5H5V9H0V5h5z" fill="white"/></svg></div>
+        <h1>Notfallkarte</h1>
+        <p>Scheckkarte zum Laminieren, für lange Läufe</p>
+      </div>
+      <details class="menu" id="menu">
+        <summary class="btn icon" aria-label="Weitere Aktionen"><svg class="i"><use href="#i-more"/></svg></summary>
+        <div class="menu-list">
+          <button type="button" id="example"><svg class="i"><use href="#i-sample"/></svg><span>Beispiel ansehen</span></button>
+          <hr>
+          <button type="button" id="save"><svg class="i"><use href="#i-down"/></svg>Angaben als Datei sichern</button>
+          <label><svg class="i"><use href="#i-up"/></svg>Angaben aus Datei laden<input id="load" type="file" accept="application/json,.json" hidden></label>
+          <hr>
+          <button type="button" class="danger" id="clear"><svg class="i"><use href="#i-trash"/></svg>Alle Eingaben löschen</button>
+        </div>
+      </details>
+      <button type="button" class="btn primary" id="print"><svg class="i"><use href="#i-print"/></svg>Drucken</button>
+    </header>
+
+    <form class="editor" id="form" autocomplete="on">
+      <div class="intro">
+        <p>Helfer sehen sofort, wen sie anrufen und was medizinisch zählt. Ausfüllen, drucken, Vorder- und Rückseite Rücken an Rücken laminieren.</p>
+        <p class="legend-print"><svg class="i"><use href="#i-eye"/></svg>Das Auge neben jeder Angabe bestimmt, ob sie auf die Karte gedruckt wird.</p>
+      </div>
+
+      <section class="sec">
+        <h2><span>01</span>Person</h2>
+        <div class="field" data-key="name">
+          <div class="field-head"><label for="name">Name</label></div>
+          <input id="name" name="name" maxlength="42" autocomplete="name" placeholder="Vor- und Nachname">
+        </div>
+        <div class="row2">
+          <div class="field" data-key="birth">
+            <div class="field-head"><label for="birth">Geburtsdatum</label></div>
+            <input id="birth" name="bday" type="date" autocomplete="bday">
+          </div>
+          <div class="field" data-key="blood">
+            <div class="field-head"><label for="blood">Blutgruppe</label></div>
+            <select id="blood">
+              <option value="">nicht angegeben</option>
+              <option>unbekannt</option>
+              <option>0+</option>
+              <option>0−</option>
+              <option>A+</option>
+              <option>A−</option>
+              <option>B+</option>
+              <option>B−</option>
+              <option>AB+</option>
+              <option>AB−</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" data-key="address">
+          <div class="field-head"><label for="address">Anschrift</label></div>
+          <input id="address" maxlength="80" autocomplete="street-address" placeholder="Straße, PLZ Ort">
+          <p class="hint">Hilft bei der Zuordnung, für den Notruf nicht nötig.</p>
+        </div>
+      </section>
+
+      <section class="sec">
+        <h2><span>02</span>Wen anrufen</h2>
+        <p class="sub">Zwei Menschen, die nachts ans Telefon gehen. Nummer mit +49, damit sie auch unterwegs funktioniert.</p>
+        <div class="row2">
+          <div class="field" data-key="who1">
+            <div class="field-head"><label for="who1">Name</label></div>
+            <input id="who1" maxlength="32" placeholder="Alex Beispiel">
+          </div>
+          <div class="field" data-key="rel1">
+            <div class="field-head"><label for="rel1">Beziehung</label></div>
+            <input id="rel1" maxlength="22" placeholder="Partnerin">
+          </div>
+        </div>
+        <div class="field" data-key="phone1">
+          <div class="field-head"><label for="phone1">Telefon</label></div>
+          <input id="phone1" type="tel" maxlength="22" autocomplete="tel" placeholder="+49 170 1234567">
+        </div>
+        <div class="row2">
+          <div class="field" data-key="who2">
+            <div class="field-head"><label for="who2">Zweiter Name</label></div>
+            <input id="who2" maxlength="32">
+          </div>
+          <div class="field" data-key="rel2">
+            <div class="field-head"><label for="rel2">Beziehung</label></div>
+            <input id="rel2" maxlength="22">
+          </div>
+        </div>
+        <div class="field" data-key="phone2">
+          <div class="field-head"><label for="phone2">Zweites Telefon</label></div>
+          <input id="phone2" type="tel" maxlength="22" placeholder="+49 170 1234567">
+        </div>
+      </section>
+
+      <section class="sec">
+        <h2><span>03</span>Der Lauf</h2>
+        <div class="field" data-key="situation">
+          <div class="field-head"><label for="situation">Situation</label></div>
+          <input id="situation" maxlength="60" value="Langer Lauf, auch nachts." placeholder="z. B. Langer Lauf, auch nachts.">
+          <p class="hint">Steht vorn auf der Karte und sagt Helfern, womit sie rechnen müssen.</p>
+        </div>
+        <div class="row2">
+          <div class="field" data-key="bib">
+            <div class="field-head"><label for="bib">Startnummer</label></div>
+            <input id="bib" maxlength="10" placeholder="z. B. 1234">
+          </div>
+          <div class="field" data-key="racePhone">
+            <div class="field-head"><label for="racePhone">Veranstalter</label></div>
+            <input id="racePhone" type="tel" maxlength="22" placeholder="Notfallnummer">
+          </div>
+        </div>
+        <p class="hint">Vor jedem Lauf neu eintragen. Die Rennleitung weiß oft, wo du zuletzt durchgekommen bist.</p>
+      </section>
+
+      <section class="sec">
+        <h2><span>04</span>Medizin</h2>
+        <div class="field" data-key="allergies">
+          <div class="field-head"><label for="allergies">Allergien</label></div>
+          <textarea id="allergies" maxlength="160" placeholder="z. B. Penicillin, Nüsse"></textarea>
+          <p class="hint">Wenn keine: „keine bekannt“. Ein leeres Feld wirkt wie vergessen.</p>
+        </div>
+        <div class="field" data-key="meds">
+          <div class="field-head"><label for="meds">Medikamente</label></div>
+          <textarea id="meds" maxlength="160" placeholder="z. B. Ramipril 5 mg morgens"></textarea>
+          <p class="hint">Name und Dosis, oder „keine bekannt“.</p>
+        </div>
+        <div class="chips" id="flags" role="group" aria-label="Akuthinweise">
+          <label class="chip"><input type="checkbox" data-flag="diabetes">Diabetes</label>
+          <label class="chip"><input type="checkbox" data-flag="asthma">Asthma</label>
+          <label class="chip"><input type="checkbox" data-flag="epilepsy">Epilepsie</label>
+          <label class="chip"><input type="checkbox" data-flag="heart">Herzerkrankung</label>
+          <label class="chip"><input type="checkbox" data-flag="thinner">Blutgerinnungshemmer</label>
+          <label class="chip"><input type="checkbox" data-flag="epi">Adrenalin-Autoinjektor</label>
+          <label class="chip"><input type="checkbox" data-flag="pregnant">Schwanger</label>
+          <label class="chip"><input type="checkbox" data-flag="watch">Notfallpass auf Uhr oder Handy</label>
+        </div>
+        <p class="hint">Angetippte Hinweise stehen mit kurzer Handlungsanweisung auf der Rückseite.</p>
+        <div class="field" data-key="acute">
+          <div class="field-head"><label for="acute">Wo liegt das Akutmittel?</label></div>
+          <input id="acute" maxlength="80" placeholder="z. B. linke vordere Westentasche">
+          <p class="hint">Autoinjektor, Inhalator, Traubenzucker.</p>
+        </div>
+        <div class="field" data-key="conditions">
+          <div class="field-head"><label for="conditions">Weitere Erkrankungen</label></div>
+          <textarea id="conditions" maxlength="160" placeholder="Nur, was oben noch nicht steht"></textarea>
+        </div>
+        <div class="field" data-key="implant">
+          <div class="field-head"><label for="implant">Implantate und Hilfsmittel</label></div>
+          <input id="implant" maxlength="80" placeholder="z. B. Schrittmacher, Kontaktlinsen, Hörgerät">
+          <p class="hint">Kontaktlinsen müssen bei Bewusstlosigkeit raus.</p>
+        </div>
+      </section>
+
+      <section class="sec">
+        <h2><span>05</span>Für die Klinik</h2>
+        <div class="field" data-key="doctor">
+          <div class="field-head"><label for="doctor">Hausarzt und Telefon</label></div>
+          <input id="doctor" maxlength="70">
+        </div>
+        <div class="field" data-key="insurance">
+          <div class="field-head"><label for="insurance">Krankenkasse und Versichertennummer</label></div>
+          <input id="insurance" maxlength="70">
+        </div>
+        <div class="field" data-key="proxy">
+          <div class="field-head"><label for="proxy">Vollmacht und Patientenverfügung</label></div>
+          <input id="proxy" maxlength="70" placeholder="z. B. Alex Beispiel (Kontakt 1), Kopie beim Hausarzt">
+          <p class="hint">Wer entscheidet, wenn du es nicht kannst, und wo liegt das Papier?</p>
+        </div>
+        <div class="field" data-key="organ">
+          <div class="field-head"><label for="organ">Organspende</label></div>
+          <input id="organ" maxlength="50" list="organ-options" placeholder="z. B. ja, Ausweis im Portemonnaie">
+          <datalist id="organ-options">
+            <option value="ja, Ausweis im Portemonnaie">
+            <option value="ja, im Organspende-Register">
+            <option value="nein">
+          </datalist>
+        </div>
+        <div class="field" data-key="languages">
+          <div class="field-head"><label for="languages">Sprachen</label></div>
+          <input id="languages" maxlength="40" placeholder="z. B. Deutsch, Englisch">
+        </div>
+        <div class="row2">
+          <div class="field" data-key="tetanus">
+            <div class="field-head"><label for="tetanus">Tetanus zuletzt</label></div>
+            <input id="tetanus" maxlength="10" inputmode="numeric" placeholder="Jahr">
+          </div>
+          <div class="field" data-key="updated">
+            <div class="field-head"><label for="updated">Stand</label></div>
+            <input id="updated" type="date">
+          </div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <h2><span>06</span>Drucken und laminieren</h2>
+        <ol class="steps">
+          <li>Wird es auf der Karte eng (orange Rahmen), unwichtige Angaben mit dem Auge ausblenden.</li>
+          <li>A4, Farbe, Skalierung 100&nbsp;%, Kopf- und Fußzeile aus, Hintergrundgrafiken an. Die schwarze Linie auf dem Blatt muss 10&nbsp;cm lang sein.</li>
+          <li>Außen an der Linie schneiden. Beide Teile mit der Oberkante nach oben aufeinanderlegen, Druck nach außen. Kurz antrocknen lassen, dann in Folie 60&nbsp;×&nbsp;95&nbsp;mm (Visitenkartenformat) laminieren. In Kreditkartenfolie 54&nbsp;×&nbsp;86&nbsp;mm ist kein Rand zum Versiegeln.</li>
+          <li>Karte in die vordere Tasche der Laufweste, das rote Schild außen an dieselbe Tasche. Die zweite Karte in den Rucksack oder das Portemonnaie. Nachts findet man sie so, ohne den Rucksack zu öffnen.</li>
+        </ol>
+        <p class="fine">Nur A4-Folien da: Karte mitlaminieren und danach ausschneiden, die Siegelnaht am Rand stehen lassen. Die Blutgruppe ist ein Hinweis, vor einer Transfusion bestimmt die Klinik sie neu. Die Erste-Hilfe-Sätze sind übliche Laienhilfe und ersetzen keinen Kurs.</p>
+        <p class="fine">Die Angaben bleiben in diesem Browser und in Dateien, die du selbst sicherst. Diese Seite sendet nichts.</p>
+      </section>
+    </form>
+
+    <main class="stage" aria-label="Druckvorschau">
+      <div class="desk" id="desk">
+        <div class="sheet-page" id="sheet">
+          <div class="layout-compact">
+
+            <template id="mini-front">
+              <article class="card mini front">
+                <header class="mini-head">
+                  <div>
+                    <div class="wordmark">NOTFALL</div>
+                    <span class="submark">LÄUFER/IN · EMERGENCY</span>
+                  </div>
+                  <div class="call"><b>112</b></div>
+                </header>
+                <div class="id" data-part="name,birth,blood">
+                  <div class="name value is-empty" data-part="name" data-field="name" data-placeholder="Name"></div>
+                  <div class="meta" data-meta></div>
+                </div>
+                <div class="strip" data-part="allergies" data-tone="empty" data-tone-from="allergies">
+                  <p class="value is-empty" data-field="allergies" data-placeholder="Allergien"></p>
+                </div>
+                <div class="contacts" data-part="who1,rel1,phone1,who2,rel2,phone2,bib,racePhone">
+                  <div data-part="phone1">
+                    <div class="phone value is-empty" data-part="phone1" data-field="phone1" data-placeholder="+49 …"></div>
+                    <div class="who" data-who="rel1,who1"></div>
+                  </div>
+                  <div data-part="phone2" data-show-if-any="who2,phone2">
+                    <div class="phone" data-field="phone2"></div>
+                    <div class="who" data-who="rel2,who2"></div>
+                  </div>
+                  <div class="race" data-show-if-any="bib,racePhone">
+                    <div class="phone" data-field="racePhone"></div>
+                    <div class="who" data-race></div>
+                  </div>
+                </div>
+                <footer class="front-foot">Bewusstlos: 112. <span data-situation-line=""></span></footer>
+              </article>
+            </template>
+            <template id="mini-back">
+              <article class="card mini back">
+                <header class="back-head">
+                  <div class="word">MEDIZIN</div>
+                  <div class="who-small value is-empty" data-part="name" data-field="name" data-placeholder="Name"></div>
+                </header>
+                <div class="back-body">
+                  <div class="pills" data-pills></div>
+                  <div class="lines" data-lines></div>
+                  <div class="block empty" data-part="meds" data-block="meds">
+                    <div class="kicker">MEDIKAMENTE</div>
+                    <div class="value is-empty" data-field="meds" data-placeholder="bitte ausfüllen"></div>
+                  </div>
+                  <div class="block" data-show-if="acute">
+                    <div class="kicker">AKUTMITTEL</div>
+                    <div class="value" data-field="acute"></div>
+                  </div>
+                  <div class="block" data-show-if="conditions">
+                    <div class="kicker">WEITERE ERKRANKUNGEN</div>
+                    <div class="value" data-field="conditions"></div>
+                  </div>
+                  <div class="block" data-show-if="implant">
+                    <div class="kicker">IMPLANTATE / HILFSMITTEL</div>
+                    <div class="value" data-field="implant"></div>
+                  </div>
+                </div>
+                <footer class="back-foot" data-foot="address:Anschrift,doctor:Arzt,insurance:Kasse,proxy:Vollmacht,organ:Organspende,languages:Sprachen,tetanus:Tetanus,updated"></footer>
+              </article>
+            </template>
+
+            <div class="mini-slot" data-mini="front"><p class="tag">Vorderseite</p></div>
+            <div class="mini-slot" data-mini="back"><p class="tag">Rückseite</p></div>
+            <div class="mini-slot" data-mini="front"><p class="tag">Zweite Karte vorne</p></div>
+            <div class="mini-slot" data-mini="back"><p class="tag">Zweite Karte hinten</p></div>
+
+            <div class="finder mini-finder">
+              <strong>NOTFALLKARTE HIER</strong>
+              <span>ICE · in dieser Tasche</span>
+            </div>
+            <p class="help">Je eine Vorder- und Rückseite Rücken an Rücken, oben an oben, Druck nach außen. Folie 60 × 95 mm. Zweite Karte für Rucksack oder Portemonnaie.</p>
+            <div class="scale">
+              <div class="scale-bar"></div>
+              <p class="scale-note">Muss 10&nbsp;cm lang sein, sonst Skalierung auf 100&nbsp;% stellen.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="status" id="status" role="status">
+        <span class="msg"><span class="dot"></span><span id="status-text"></span></span>
+        <span class="example-tag">Beispieldaten</span>
+        <span>Druck in Originalgröße (100&nbsp;%)</span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const KEY = "notfallkarte-v1";
+    const FLAG_LABEL = {
+      diabetes: "Diabetes",
+      asthma: "Asthma",
+      epilepsy: "Epilepsie",
+      heart: "Herz",
+      thinner: "Blutverdünner",
+      epi: "Autoinjektor",
+      pregnant: "Schwanger",
+      watch: "Uhr/Handy"
+    };
+    const FLAG_TEXT = {
+      diabetes: "Wenn wach: Zucker geben. Bewusstlos: nichts einflößen.",
+      asthma: "Beim eigenen Inhalator helfen.",
+      epilepsy: "Nicht festhalten, nichts in den Mund, Dauer merken.",
+      thinner: "Blutet stärker. Dem Notruf sagen.",
+      epi: "Schwere Allergie: eigenen Autoinjektor in den Oberschenkel außen.",
+      watch: "Notfallpass auf Uhr oder Handy, ohne Entsperren."
+    };
+    // Häkchen mit Anweisung stehen als Zeile mit Plakette davor, die übrigen (Herz, Schwanger) nur als Plakette
+    const SHEET_WIDTH_PX = 210 * 96 / 25.4;
+
+    const fields = ["name", "birth", "blood", "address", "who1", "rel1", "phone1", "who2", "rel2", "phone2", "situation", "bib", "racePhone", "allergies", "meds", "acute", "conditions", "implant", "doctor", "insurance", "proxy", "organ", "languages", "tetanus", "updated"];
+    const DEFAULTS = { situation: "Langer Lauf, auch nachts." };
+    let hidden = {};
+    let suspendSave = false;
+    let exampleBackup = null;
+
+    // Scheckkarten-Bogen: zwei Karten aus derselben Vorlage
+    document.querySelectorAll("[data-mini]").forEach((slot) => {
+      slot.appendChild(document.getElementById("mini-" + slot.dataset.mini).content.cloneNode(true));
+    });
+
+    // Schalter „auf die Karte“ an jeder Angabe
+    document.querySelectorAll(".field[data-key]").forEach((field) => {
+      const head = field.querySelector(".field-head");
+      const label = field.querySelector("label").textContent;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pt";
+      btn.dataset.toggle = field.dataset.key;
+      btn.setAttribute("aria-pressed", "true");
+      btn.setAttribute("aria-label", label + " auf die Karte drucken");
+      btn.title = "Auf die Karte drucken";
+      btn.innerHTML = '<span class="off-text">nicht gedruckt</span><svg class="on"><use href="#i-eye"/></svg><svg class="off"><use href="#i-eye-off"/></svg>';
+      head.appendChild(btn);
+    });
+
+    function val(id) {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : "";
+    }
+
+    function formatDE(iso) {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
+      const [y, m, d] = iso.split("-");
+      return d + "." + m + "." + y;
+    }
+
+    function toneOf(value) {
+      const t = value.trim().toLowerCase().replace(/[.!]+$/g, "");
+      if (!t) return "empty";
+      if (/^keine\b/.test(t) && !/\b(aber|außer|bis auf|nur)\b/.test(t)) return "none";
+      if (["nein", "nichts", "nichts bekannt", "no", "none", "n/a", "-"].includes(t)) return "none";
+      return "alert";
+    }
+
+    function readFlags() {
+      const flags = {};
+      document.querySelectorAll("[data-flag]").forEach((box) => {
+        flags[box.dataset.flag] = box.checked;
+      });
+      return flags;
+    }
+
+    function state() {
+      const data = {};
+      for (const id of fields) data[id] = val(id);
+      return { v: 2, data, flags: readFlags(), hidden: { ...hidden } };
+    }
+
+    function applyState(saved) {
+      if (!saved || !saved.data) return;
+      for (const id of fields) {
+        const el = document.getElementById(id);
+        if (el && saved.data[id] != null) el.value = saved.data[id];
+      }
+      document.querySelectorAll("[data-flag]").forEach((box) => {
+        box.checked = !!(saved.flags && saved.flags[box.dataset.flag]);
+      });
+      hidden = { ...(saved.hidden || {}) };
+    }
+
+    function save() {
+      if (suspendSave) return;
+      try { localStorage.setItem(KEY, JSON.stringify(state())); } catch (err) { /* file:// darf speichern verweigern */ }
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (!raw) return false;
+        applyState(JSON.parse(raw));
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function render() {
+      // Was gedruckt wird: ausgeblendete Angaben zählen als leer
+      const data = {};
+      for (const id of fields) data[id] = hidden[id] ? "" : val(id);
+
+      document.querySelectorAll(".field[data-key]").forEach((field) => {
+        const off = !!hidden[field.dataset.key];
+        field.classList.toggle("is-off", off);
+        const btn = field.querySelector("[data-toggle]");
+        btn.setAttribute("aria-pressed", off ? "false" : "true");
+        btn.title = off ? "Wird nicht gedruckt. Antippen, um es auf die Karte zu nehmen." : "Wird gedruckt. Antippen, um es wegzulassen.";
+      });
+
+      const partOff = (el) => !!el.dataset.part && el.dataset.part.split(",").every((key) => hidden[key]);
+      document.querySelectorAll("[data-part]").forEach((el) => { el.hidden = partOff(el); });
+
+      document.querySelectorAll("[data-field]").forEach((el) => {
+        const text = data[el.dataset.field] || "";
+        el.textContent = text;
+        el.classList.toggle("is-empty", text.length === 0);
+      });
+
+      document.querySelectorAll("[data-who]").forEach((el) => {
+        el.textContent = el.dataset.who.split(",").map((key) => data[key]).filter(Boolean).join(" · ");
+      });
+
+      const race = ["Veranstalter", data.bib && "Start-Nr. " + data.bib].filter(Boolean).join(" · ");
+      document.querySelectorAll("[data-race]").forEach((el) => { el.textContent = race; });
+
+      document.querySelectorAll("[data-situation-line]").forEach((el) => {
+        el.textContent = [data.situation, el.dataset.situationLine].filter(Boolean).join(" ");
+      });
+
+      const metaBits = [];
+      const birth = formatDE(data.birth);
+      if (birth) metaBits.push("geb. " + birth);
+      if (data.blood) metaBits.push("Blutgruppe " + data.blood);
+      document.querySelectorAll("[data-meta]").forEach((el) => {
+        el.textContent = metaBits.join(" · ");
+        el.hidden = metaBits.length === 0;
+      });
+
+      document.querySelectorAll("[data-tone-from]").forEach((el) => {
+        el.dataset.tone = toneOf(data[el.dataset.toneFrom] || "");
+      });
+      document.querySelectorAll("[data-block]").forEach((el) => {
+        el.classList.remove("alert", "none", "empty");
+        el.classList.add(toneOf(data[el.dataset.block] || ""));
+      });
+
+      document.querySelectorAll("[data-show-if]").forEach((el) => {
+        el.hidden = partOff(el) || !(data[el.dataset.showIf] || "").length;
+      });
+      document.querySelectorAll("[data-show-if-any]").forEach((el) => {
+        el.hidden = partOff(el) || !el.dataset.showIfAny.split(",").some((key) => (data[key] || "").length);
+      });
+
+      // Fußzeile der Rückseite: "key:Bezeichnung" durch Kommas, "|" beginnt einen neuen Absatz
+      const stand = formatDE(data.updated);
+      document.querySelectorAll("[data-foot]").forEach((foot) => {
+        const line = (spec) => {
+          const p = document.createElement("p");
+          spec.split(",").forEach((item) => {
+            const [key, label] = item.split(":");
+            let text = data[key];
+            if (key === "updated") {
+              if (hidden.updated) return;
+              text = stand ? "Stand " + stand : "Stand offen";
+            }
+            if (!text) return;
+            if (p.childNodes.length) p.append(" · ");
+            if (label) {
+              const strong = document.createElement("strong");
+              strong.textContent = label + " ";
+              p.append(strong);
+            }
+            p.append(text);
+          });
+          return p;
+        };
+        foot.replaceChildren(...foot.dataset.foot.split("|").map(line));
+      });
+
+      const flags = readFlags();
+
+      document.querySelectorAll("[data-pills]").forEach((box) => {
+        box.replaceChildren();
+        for (const key of Object.keys(FLAG_LABEL)) {
+          if (!flags[key] || FLAG_TEXT[key]) continue;
+          const pill = document.createElement("span");
+          pill.className = "pill";
+          pill.textContent = FLAG_LABEL[key];
+          box.appendChild(pill);
+        }
+        box.classList.toggle("is-empty", box.childElementCount === 0);
+      });
+
+      const lineKeys = Object.keys(FLAG_TEXT).filter((key) => flags[key]);
+      document.querySelectorAll("[data-lines]").forEach((box) => {
+        box.replaceChildren(...lineKeys.map((key) => {
+          const p = document.createElement("p");
+          const pill = document.createElement("span");
+          pill.className = "pill";
+          pill.textContent = FLAG_LABEL[key];
+          p.append(pill, FLAG_TEXT[key]);
+          return p;
+        }));
+        box.hidden = lineKeys.length === 0;
+      });
+
+      fitCards();
+      updateStatus();
+    }
+
+    function fitCards() {
+      document.querySelectorAll(".card.front").forEach((card) => {
+        const box = card.querySelector(".contacts");
+        card.classList.toggle("overflowing", !!card.getClientRects().length && box.scrollHeight > box.clientHeight + 1);
+      });
+      document.querySelectorAll(".card.back").forEach((card) => {
+        const body = card.querySelector(".back-body");
+        const foot = card.querySelector(".back-foot");
+        if (!card.getClientRects().length) {
+          card.classList.remove("overflowing");
+          return;
+        }
+        // Inhalt und Fußzeile schrumpfen gemeinsam, die Fußzeile bleibt etwas kleiner
+        const mini = card.classList.contains("mini");
+        const footRatio = mini ? 0.87 : 0.83;
+        let size = mini ? 6.2 : 8.4;
+        const min = mini ? 5.2 : 6.8;
+        const apply = () => {
+          body.style.fontSize = size + "pt";
+          foot.style.fontSize = Math.round(size * footRatio * 10) / 10 + "pt";
+        };
+        apply();
+        let steps = 0;
+        while (body.scrollHeight > body.clientHeight + 1 && size > min && steps < 12) {
+          size = Math.round((size - 0.2) * 10) / 10;
+          apply();
+          steps += 1;
+        }
+        card.classList.toggle("overflowing", body.scrollHeight > body.clientHeight + 1);
+      });
+    }
+
+    function fitSheet() {
+      const desk = document.getElementById("desk");
+      const style = getComputedStyle(desk);
+      const inner = desk.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const zoom = Math.max(0.35, Math.min(1.6, inner / SHEET_WIDTH_PX));
+      document.getElementById("sheet").style.zoom = zoom.toFixed(3);
+    }
+
+    function missing() {
+      const need = { name: "Name", phone1: "Telefon des ersten Kontakts", allergies: "Allergien (oder „keine bekannt“)", meds: "Medikamente (oder „keine bekannt“)" };
+      return Object.keys(need).filter((id) => !hidden[id] && !val(id)).map((id) => need[id]);
+    }
+
+    function oldStand() {
+      const iso = val("updated");
+      if (!iso) return false;
+      const then = new Date(iso + "T00:00:00");
+      if (Number.isNaN(then.getTime())) return false;
+      return (Date.now() - then.getTime()) / (1000 * 60 * 60 * 24) > 365;
+    }
+
+    function problems() {
+      const bits = [];
+      const gaps = missing();
+      if (gaps.length) bits.push("Noch offen: " + gaps.join(", ") + ".");
+      if (oldStand()) bits.push("Stand über ein Jahr alt, Angaben prüfen.");
+      if (document.querySelector(".card.overflowing")) bits.push("Orange umrandete Karte: Text kürzen oder Angaben mit dem Auge ausblenden, sonst wird abgeschnitten.");
+      return bits;
+    }
+
+    function updateStatus() {
+      const bits = problems();
+      const example = document.body.classList.contains("is-example");
+      document.getElementById("status").classList.toggle("warn", bits.length > 0 || example);
+      if (example) bits.unshift("Musterdaten mit Wasserzeichen, nicht laminieren.");
+      document.getElementById("status-text").textContent = bits.length ? bits.join(" ") : "Bereit zum Drucken.";
+    }
+
+    function setExampleMode(on) {
+      document.body.classList.toggle("is-example", on);
+      document.querySelector("#example span").textContent = on ? "Beispiel verwerfen" : "Beispiel ansehen";
+    }
+
+    function todayISO() {
+      const now = new Date();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      return now.getFullYear() + "-" + m + "-" + d;
+    }
+
+    function clearForm() {
+      for (const id of fields) {
+        const el = document.getElementById(id);
+        if (el) el.value = DEFAULTS[id] || "";
+      }
+      document.querySelectorAll("[data-flag]").forEach((box) => { box.checked = false; });
+      document.getElementById("updated").value = todayISO();
+      hidden = {};
+      setExampleMode(false);
+      suspendSave = false;
+    }
+
+    function fill(values, flagKeys) {
+      for (const [id, value] of Object.entries(values)) document.getElementById(id).value = value;
+      flagKeys.forEach((key) => { document.querySelector(`[data-flag=${key}]`).checked = true; });
+      setExampleMode(true);
+      render();
+    }
+
+    function example() {
+      let backup = null;
+      try { backup = localStorage.getItem(KEY); } catch (err) { backup = null; }
+      clearForm();
+      exampleBackup = backup;
+      suspendSave = true;
+      fill({
+        name: "Beispielperson Lauf",
+        birth: "1990-04-12",
+        blood: "0+",
+        address: "Musterweg 1, 30159 Hannover",
+        who1: "Alex Beispiel",
+        rel1: "Partnerin",
+        phone1: "+49 170 0000001",
+        who2: "Sam Beispiel",
+        rel2: "Bruder",
+        phone2: "+49 170 0000002",
+        bib: "1234",
+        racePhone: "+49 170 0000003",
+        allergies: "Penicillin",
+        meds: "keine bekannt",
+        acute: "linke vordere Westentasche",
+        conditions: "Schilddrüsenunterfunktion",
+        implant: "Kontaktlinsen",
+        doctor: "Praxis Beispiel, 0511 000000",
+        proxy: "Alex Beispiel (Kontakt 1)",
+        organ: "ja, Ausweis im Portemonnaie",
+        languages: "Deutsch, Englisch",
+        tetanus: "2021",
+        updated: todayISO()
+      }, ["asthma", "watch"]);
+    }
+
+    function stress() {
+      clearForm();
+      suspendSave = true;
+      fill({
+        name: "Maximilian Mustermann-Schulze",
+        birth: "1984-11-03",
+        blood: "AB−",
+        address: "Sehrlanger Straßenname 128, 01234 Beispielstadt",
+        who1: "Alexandra Beispielmensch",
+        rel1: "Partnerin",
+        phone1: "+49 170 123456789",
+        who2: "Johanna Beispielmensch",
+        rel2: "Schwester",
+        phone2: "+49 171 9876543",
+        situation: "Ultralauf 160 km über Nacht, Gelände und Kälte.",
+        bib: "12345",
+        racePhone: "+49 171 12345678",
+        allergies: "Penicillin, Erdnüsse, Wespenstich, Kontrastmittel",
+        meds: "Ramipril 5 mg morgens, Salbutamol bei Bedarf, kein weiteres Dauermedikament",
+        acute: "Autoinjektor vordere linke Tasche, Inhalator rechte Hüfttasche",
+        conditions: "Schilddrüse eingestellt, sonst nichts Akutes",
+        implant: "Kontaktlinsen, Hörgerät links",
+        doctor: "Dr. Beispiel, 0511 1234567",
+        insurance: "Beispielkasse A123456789",
+        proxy: "Alexandra Beispielmensch (Kontakt 1), Kopie beim Hausarzt",
+        organ: "ja, im Organspende-Register",
+        languages: "Deutsch, Englisch",
+        tetanus: "2019",
+        updated: todayISO()
+      }, Object.keys(FLAG_LABEL));
+    }
+
+    function leaveExample() {
+      if (!document.body.classList.contains("is-example")) return;
+      setExampleMode(false);
+      exampleBackup = null;
+      suspendSave = false;
+    }
+
+    document.getElementById("form").addEventListener("input", () => {
+      leaveExample();
+      render();
+      save();
+    });
+
+    document.getElementById("form").addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-toggle]");
+      if (!btn) return;
+      const key = btn.dataset.toggle;
+      if (hidden[key]) delete hidden[key];
+      else hidden[key] = true;
+      render();
+      save();
+    });
+
+
+    const menu = document.getElementById("menu");
+    document.addEventListener("click", (event) => {
+      if (menu.open && !menu.contains(event.target)) menu.open = false;
+    });
+    menu.querySelector(".menu-list").addEventListener("click", (event) => {
+      if (event.target.closest("button")) menu.open = false;
+    });
+
+    document.getElementById("print").addEventListener("click", () => {
+      render();
+      const notes = problems();
+      if (document.body.classList.contains("is-example")) notes.unshift("Das sind Musterdaten.");
+      if (notes.length && !window.confirm(notes.join(" ") + " Trotzdem drucken?")) return;
+      window.print();
+    });
+
+    document.getElementById("example").addEventListener("click", () => {
+      if (!document.body.classList.contains("is-example")) {
+        example();
+        return;
+      }
+      const backup = exampleBackup;
+      clearForm();
+      exampleBackup = null;
+      if (backup) {
+        try { applyState(JSON.parse(backup)); } catch (err) { /* ignore */ }
+      }
+      render();
+      save();
+    });
+
+    document.getElementById("clear").addEventListener("click", () => {
+      if (!window.confirm("Alle Eingaben auf dieser Karte löschen?")) return;
+      clearForm();
+      exampleBackup = null;
+      try { localStorage.removeItem(KEY); } catch (err) { /* ignore */ }
+      render();
+    });
+
+    document.getElementById("save").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(state(), null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "notfallkarte-angaben.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    document.getElementById("load").addEventListener("change", (event) => {
+      const file = event.target.files && event.target.files[0];
+      menu.open = false;
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          applyState(JSON.parse(String(reader.result)));
+          leaveExample();
+          render();
+          save();
+        } catch (err) {
+          window.alert("Diese Datei enthält keine lesbaren Kartendaten.");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = "";
+    });
+
+    // Nur auf Breitenänderungen reagieren: Höhe und Scrollleiste ändern sich mit dem Zoom selbst
+    let deskWidth = 0;
+    new ResizeObserver(() => {
+      const width = document.getElementById("desk").clientWidth;
+      if (Math.abs(width - deskWidth) < 24) return;
+      deskWidth = width;
+      fitSheet();
+      fitCards();
+    }).observe(document.getElementById("desk"));
+
+    const params = new URLSearchParams(location.search);
+    const hadStore = load();
+    if (!val("updated")) document.getElementById("updated").value = todayISO();
+    fitSheet();
+    if (params.get("stress") === "1") stress();
+    else if (params.get("beispiel") === "1") example();
+    else render();
+    if (!hadStore) save();
+  </script>
+</body>
+</html>
