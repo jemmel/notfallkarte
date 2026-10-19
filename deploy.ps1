@@ -7,7 +7,7 @@
   wrangler hoch. Beim ersten Lauf legt es das Pages-Projekt an, hängt die Domain an und setzt den
   CNAME in der Zone janemmel.de. Spätere Läufe überspringen, was schon da ist.
 
-  Das Cloudflare-Token kommt aus $env:CLOUDFLARE_API_TOKEN, sonst aus .env hier oder ../kita/.env
+  Das Cloudflare-Token kommt aus $env:CLOUDFLARE_API_TOKEN, sonst aus .env in diesem Ordner
   (cloudflare_api_token=...). Es wird nie ausgegeben.
 
 .EXAMPLE
@@ -50,9 +50,8 @@ if ($DryRun) { Write-Host 'Probelauf, nichts hochgeladen.' -ForegroundColor Cyan
 # ── Zugang ──
 $token = $env:CLOUDFLARE_API_TOKEN
 if (-not $token) {
-    $envFile = @((Join-Path $root '.env'), (Join-Path $root '../kita/.env')) |
-        Where-Object { Test-Path $_ } | Select-Object -First 1
-    if (-not $envFile) { throw 'Keine .env gefunden (erwartet cloudflare_api_token=...)' }
+    $envFile = Join-Path $root '.env'
+    if (-not (Test-Path $envFile)) { throw 'Keine .env gefunden (erwartet cloudflare_api_token=...)' }
     $token = (Get-Content $envFile |
         Where-Object { $_ -match '^\s*cloudflare_api_token\s*=' } |
         Select-Object -First 1) -replace '^\s*cloudflare_api_token\s*=\s*', '' -replace '^["'']|["'']$', ''

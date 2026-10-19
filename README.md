@@ -11,6 +11,6 @@ Online: https://notfallkarte.janemmel.de (Cloudflare Pages, Projekt `notfallkart
 ./deploy.ps1           # hochladen; legt beim ersten Mal Projekt, Domain und CNAME an
 ```
 
-Token wie bei kitaweb: `$env:CLOUDFLARE_API_TOKEN`, `.env` hier oder `../kita/.env`.
+Cloudflare-Token: `$env:CLOUDFLARE_API_TOKEN` oder `cloudflare_api_token=...` in `.env` (nicht im Repo).
 
 Testaufrufe: `?beispiel=1` (Musterdaten), `?stress=1` (lange Texte, alle Häkchen; läuft absichtlich über).
